@@ -288,8 +288,8 @@
 
   /* ---------- cantidad + resumen ---------- */
   const BUNDLES = CFG.bundles || { 1: CFG.price };
-  const MAX_QTY = Math.max.apply(null, Object.keys(BUNDLES).map(Number));
-  const totalFor = (q) => BUNDLES[q] || CFG.price * q;
+  const MAX_QTY = CFG.maxQty || Math.max.apply(null, Object.keys(BUNDLES).map(Number));
+  const totalFor = (q) => BUNDLES[q] || (CFG.bulkUnitPrice || CFG.price) * q;
   const orderTotal = () => totalFor(state.qty);
 
   function updateSummary() {

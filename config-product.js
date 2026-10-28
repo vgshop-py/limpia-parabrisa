@@ -15,8 +15,11 @@ const PRODUCT_CONFIG = {
   price: 149000,
   oldPrice: 199000,
   currency: "PYG",
-  // Precio TOTAL según cantidad (máximo 3 por pedido)
+  // Precio TOTAL según cantidad
   bundles: { 1: 149000, 2: 225000, 3: 297000 },
+  // Desde 4 unidades: precio por unidad (4 = 396.000, 5 = 495.000…)
+  bulkUnitPrice: 99000,
+  maxQty: 10,
   metaPixelId: "2412226475899711",
   whatsapp: "595972738779",            // Contacto WhatsApp VG Shop
 
