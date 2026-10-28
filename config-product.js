@@ -41,6 +41,8 @@ const PRODUCT_CONFIG = {
   supabaseUrl: "https://roruinqorwgolcrhhmpm.supabase.co",
   supabaseAnonKey: "sb_publishable_aRPb1yNunMEheat00BxwtQ_Uft732KJ",
   supabaseTable: "pedidos_web",
+  // pedidos_web no acepta inserts de anon: los pedidos van por esta edge function.
+  edgeFunctionUrl: "https://roruinqorwgolcrhhmpm.supabase.co/functions/v1/create-limpiador-parabrisas-order",
 
   // ====== PANEL DE FUNCIONES (activá/desactivá sin tocar el código) ======
   // También editable en vivo con ?config=1 o Ctrl+Shift+C

@@ -776,37 +776,32 @@
   function orderNumber() {
     return '#PY' + Date.now().toString().slice(-6) + rand(10, 99);
   }
-  // Campos nuevos de zona/pago. Si la tabla todavía no los tiene, se reintenta sin ellos
-  // para no perder el pedido (los datos igual viajan dentro de "referencia").
-  const ZONE_COLUMNS = ['tipo_entrega', 'tipo_pago', 'zona_cliente', 'datos_confirmados'];
-
-  async function postOrder(order) {
-    const r = await fetch(CFG.supabaseUrl + '/rest/v1/' + CFG.supabaseTable, {
-      method: 'POST',
-      headers: {
-        apikey: CFG.supabaseAnonKey,
-        Authorization: 'Bearer ' + CFG.supabaseAnonKey,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal'
-      },
-      body: JSON.stringify(order)
-    });
-    if (!r.ok) throw new Error(await r.text().catch(() => 'error'));
+  // pedidos_web no acepta inserts de anon desde 2026-10-08: el pedido va por la edge
+  // function, que fija precio y producto en el servidor y guarda con la service role.
+  function cookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
   }
 
   async function saveOrder(order) {
-    try {
-      await postOrder(order);
-    } catch (e) {
-      const msg = String(e && e.message || '');
-      const schemaIssue = ZONE_COLUMNS.some((c) => msg.indexOf(c) !== -1) ||
-        /PGRST204|schema cache|column/i.test(msg);
-      if (!schemaIssue) throw e;
-      console.warn('[pedido] columnas de zona no disponibles, reintentando sin ellas');
-      const fallback = Object.assign({}, order);
-      ZONE_COLUMNS.forEach((c) => { delete fallback[c]; });
-      await postOrder(fallback);
-    }
+    const params = new URLSearchParams(location.search);
+    const body = Object.assign({}, order, {
+      utm_source: params.get('utm_source') || '',
+      utm_medium: params.get('utm_medium') || '',
+      utm_campaign: params.get('utm_campaign') || '',
+      fbclid: params.get('fbclid') || '',
+      landing_url: location.href.slice(0, 500),
+      meta_fbp: cookie('_fbp'),
+      meta_fbc: cookie('_fbc')
+    });
+    const r = await fetch(CFG.edgeFunctionUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    if (j.orderId) order.id = '#' + j.orderId;
   }
 
   /* ---------- armado del pedido ---------- */
