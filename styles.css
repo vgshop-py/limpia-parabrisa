@@ -643,3 +643,31 @@ body.has-sticky{padding-bottom:78px}
 .wa-float:hover{transform:scale(1.06);color:#fff}
 .wa-float[hidden]{display:none}
 @media (max-width:640px){.wa-float{bottom:134px;right:16px;width:46px;height:46px}}
+
+/* ===== mapa dentro del checkout ===== */
+.inline-map{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1)}
+.inline-map-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 14px var(--font-head);color:#fff}
+.inline-map-head small{display:block;font:500 12px var(--font-body);color:var(--muted)}
+.map-geo{flex:none;padding:8px 12px;border-radius:10px;border:1px solid rgba(110,168,255,.4);background:rgba(110,168,255,.12);color:var(--blue);font:700 12px var(--font-head);cursor:pointer;white-space:nowrap}
+.inline-map .map-search button{padding:0 14px}
+.inline-map .map-picker{height:240px;position:relative;z-index:0}
+@media (max-width:480px){.inline-map .map-picker{height:220px}}
+
+/* ===== ofertas por cantidad ===== */
+.bundle-hint{margin:2px 0 14px;font:500 14px var(--font-body);color:var(--muted)}
+.bundle-hint b{color:#fff}
+.bundle-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 14px}
+.bundle-opt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 6px;border-radius:12px;background:var(--card);border:1.5px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:.2s;text-align:center}
+.bundle-opt .b-q{font:600 12px var(--font-body);color:var(--muted)}
+.bundle-opt .b-p{font:800 14px var(--font-head)}
+.bundle-opt .b-s{font:700 11px var(--font-body);color:var(--green)}
+.bundle-opt .b-s.muted{color:var(--muted-3,#7a8599);font-weight:500}
+.bundle-opt.active{border-color:var(--red);background:rgba(224,31,38,.1);box-shadow:0 0 0 3px rgba(224,31,38,.15)}
+.bundle-opt .b-p{white-space:nowrap}
+@media (max-width:420px){
+  .bundle-opts{gap:6px}
+  .bundle-opt{padding:10px 4px}
+  .bundle-opt .b-p{font-size:12.5px}
+  .bundle-opt .b-s{font-size:10px}
+  .inline-map-head{flex-wrap:wrap}
+}

@@ -287,11 +287,33 @@
   }
 
   /* ---------- cantidad + resumen ---------- */
+  const BUNDLES = CFG.bundles || { 1: CFG.price };
+  const MAX_QTY = Math.max.apply(null, Object.keys(BUNDLES).map(Number));
+  const totalFor = (q) => BUNDLES[q] || CFG.price * q;
+  const orderTotal = () => totalFor(state.qty);
+
   function updateSummary() {
-    const total = CFG.price * state.qty;
+    const total = orderTotal();
     $('#qtyVal').textContent = state.qty;
     $('#sumQty').textContent = state.qty;
+    $('#sumUnit').textContent = fmt(total);
     $('#sumTotal').textContent = fmt(total);
+    $$('.bundle-opt').forEach((b) => b.classList.toggle('active', Number(b.dataset.qty) === state.qty));
+  }
+  function renderBundles() {
+    const box = $('#bundleOpts');
+    if (!box) return;
+    box.innerHTML = Object.keys(BUNDLES).map(Number).sort((a, b) => a - b).map((q) => {
+      const save = CFG.price * q - BUNDLES[q];
+      return '<button type="button" class="bundle-opt" data-qty="' + q + '">' +
+        '<span class="b-q">' + q + (q === 1 ? ' unidad' : ' unidades') + '</span>' +
+        '<span class="b-p">' + fmt(BUNDLES[q]) + '</span>' +
+        (save > 0 ? '<span class="b-s">Ahorrás ' + fmt(save) + '</span>' : '<span class="b-s muted">Precio normal</span>') +
+      '</button>';
+    }).join('');
+    $$('.bundle-opt', box).forEach((b) => b.addEventListener('click', () => {
+      state.qty = Number(b.dataset.qty); bumpQty(); updateSummary();
+    }));
   }
   function bumpQty() {
     const el = $('#qtyVal');
@@ -299,8 +321,9 @@
     setTimeout(() => el.classList.remove('bump'), 200);
   }
   function initQty() {
-    $('#qtyInc').addEventListener('click', () => { state.qty = clamp(state.qty + 1, 1, 9); bumpQty(); updateSummary(); });
-    $('#qtyDec').addEventListener('click', () => { state.qty = clamp(state.qty - 1, 1, 9); bumpQty(); updateSummary(); });
+    $('#qtyInc').addEventListener('click', () => { state.qty = clamp(state.qty + 1, 1, MAX_QTY); bumpQty(); updateSummary(); });
+    $('#qtyDec').addEventListener('click', () => { state.qty = clamp(state.qty - 1, 1, MAX_QTY); bumpQty(); updateSummary(); });
+    renderBundles();
     updateSummary();
   }
 
@@ -429,13 +452,13 @@
     document.body.classList.add('no-scroll');
     if (window.__loadLazyIn) window.__loadLazyIn($('#checkoutModal'));
     track('begin_checkout');
+    initMapInstance();
     if (window.__updateStickyBar) window.__updateStickyBar();
     setTimeout(() => { const f = $('input[name="nombre"]'); if (f) f.focus({ preventScroll: true }); }, 250);
   }
   function closeCheckout() {
     $('#checkoutModal').classList.remove('show');
-    if (!$('#success').classList.contains('show') && !$('#mapModal').classList.contains('show') &&
-        !$('#reviewModal').classList.contains('show')) {
+    if (!$('#success').classList.contains('show') && !$('#reviewModal').classList.contains('show')) {
       document.body.classList.remove('no-scroll');
     }
     if (window.__updateStickyBar) window.__updateStickyBar();
@@ -449,7 +472,7 @@
     $('#checkoutModal').addEventListener('click', (e) => { if (e.target.id === 'checkoutModal') closeCheckout(); });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && $('#checkoutModal').classList.contains('show') &&
-          !$('#mapModal').classList.contains('show') && !$('#reviewModal').classList.contains('show')) closeCheckout();
+          !$('#reviewModal').classList.contains('show')) closeCheckout();
     });
   }
 
@@ -650,45 +673,36 @@
     paintZoneUI();
   }
 
-  /* ---------- selector de ubicación en el mapa (estilo Bolso, con Leaflet) ---------- */
-  let leafMap = null, leafMarker = null, selectedMapLink = '';
+  /* ---------- mapa dentro del checkout (Leaflet) ---------- */
+  // El link solo se guarda cuando el cliente marca un punto (tocar, arrastrar, buscar o GPS).
+  let leafMap = null, leafMarker = null, userPinned = false;
   function mapsUrl(lat, lng) { return 'https://www.google.com/maps?q=' + lat.toFixed(6) + ',' + lng.toFixed(6); }
-  function setMapLink(link) {
-    selectedMapLink = link;
-    const linkInput = $('#mapLinkInput'), open = $('#mapOpenLink');
-    if (linkInput) linkInput.value = link;
-    if (open) open.href = link || 'https://www.google.com/maps';
-  }
-  function moveMap(lat, lng, zoom) {
-    setMapLink(mapsUrl(lat, lng));
+  function pinMap(lat, lng, zoom) {
+    userPinned = true;
+    $('#mapsInput').value = mapsUrl(lat, lng);
     if (!leafMap) return;
     leafMap.setView([lat, lng], zoom || leafMap.getZoom());
     if (!leafMarker) {
       leafMarker = L.marker([lat, lng], { draggable: true }).addTo(leafMap);
-      leafMarker.on('dragend', () => { const p = leafMarker.getLatLng(); moveMap(p.lat, p.lng, leafMap.getZoom()); });
+      leafMarker.on('dragend', () => { const p = leafMarker.getLatLng(); pinMap(p.lat, p.lng); });
     } else {
       leafMarker.setLatLng([lat, lng]);
     }
+    $('#mapError').textContent = '✅ Ubicación marcada. Podés arrastrar el pin para ajustarla.';
   }
   function initMapInstance() {
-    if (leafMap || typeof L === 'undefined') return;
+    if (typeof L === 'undefined') return;
+    if (leafMap) { setTimeout(() => leafMap.invalidateSize(), 150); return; }
     const def = [-25.2637, -57.5759]; // Asunción
-    leafMap = L.map('mapPicker', { zoomControl: true }).setView(def, 13);
+    leafMap = L.map('mapPicker', { zoomControl: true }).setView(def, 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(leafMap);
-    leafMap.on('click', (e) => moveMap(e.latlng.lat, e.latlng.lng, leafMap.getZoom()));
-    moveMap(def[0], def[1], 13);
+    leafMap.on('click', (e) => pinMap(e.latlng.lat, e.latlng.lng));
+    setTimeout(() => leafMap.invalidateSize(), 150);
   }
-  function openMapModal() {
-    const m = $('#mapModal');
-    m.classList.add('show');
-    document.body.classList.add('no-scroll');
-    initMapInstance();
-    setTimeout(() => { if (leafMap) leafMap.invalidateSize(); }, 120);
-  }
-  function closeMapModal() {
-    $('#mapModal').classList.remove('show');
-    if ($('#checkoutModal').classList.contains('show')) return; // el checkout sigue abierto
-    document.body.classList.remove('no-scroll');
+  async function geocode(q) {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q + ', Paraguay'));
+    const data = await res.json();
+    return data.length ? [Number(data[0].lat), Number(data[0].lon)] : null;
   }
   async function searchMapLocation() {
     const q = ($('#mapSearch').value || '').trim();
@@ -696,28 +710,40 @@
     if (!q) { err.textContent = 'Escribí una dirección o lugar para buscar.'; return; }
     err.textContent = 'Buscando ubicación…';
     try {
-      const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q + ', Paraguay'));
-      const data = await res.json();
-      if (!data.length) { err.textContent = 'No encontramos esa dirección. Probá con otra referencia.'; return; }
-      moveMap(Number(data[0].lat), Number(data[0].lon), 17);
-      err.textContent = 'Tocá el mapa o arrastrá el pin para ajustar la ubicación exacta.';
+      const city = selectedCity();
+      const p = await geocode(city ? q + ', ' + city : q) || await geocode(q);
+      if (!p) { err.textContent = 'No encontramos esa dirección. Tocá directamente el mapa.'; return; }
+      pinMap(p[0], p[1], 17);
     } catch (e) {
       err.textContent = 'No se pudo buscar. Tocá directamente el mapa para marcar la ubicación.';
     }
   }
+  // Al elegir ciudad, el mapa se centra ahí (si el cliente todavía no marcó nada)
+  async function centerMapOnCity(city) {
+    if (!leafMap || userPinned || !city || isOtherCity(city)) return;
+    try { const p = await geocode(city); if (p && !userPinned) leafMap.setView(p, 14); } catch (e) {}
+  }
+  function useMyLocation() {
+    const err = $('#mapError');
+    if (!navigator.geolocation) { err.textContent = 'Tu navegador no permite ubicación. Tocá el mapa.'; return; }
+    err.textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => pinMap(pos.coords.latitude, pos.coords.longitude, 17),
+      () => { err.textContent = 'No pudimos obtener tu ubicación. Tocá el mapa para marcarla.'; },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+  function resetMap() {
+    userPinned = false;
+    $('#mapsInput').value = '';
+    if (leafMarker && leafMap) { leafMap.removeLayer(leafMarker); leafMarker = null; }
+    $('#mapError').textContent = 'Tocá el mapa o arrastrá el pin para marcar tu casa.';
+  }
   function initMapPicker() {
-    $$('[data-open-map]').forEach((b) => b.addEventListener('click', openMapModal));
-    $$('[data-close-map]').forEach((b) => b.addEventListener('click', closeMapModal));
-    $('#mapModal').addEventListener('click', (e) => { if (e.target.id === 'mapModal') closeMapModal(); });
     $('#mapSearchButton').addEventListener('click', searchMapLocation);
     $('#mapSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); searchMapLocation(); } });
-    $('#mapLinkInput').addEventListener('input', (e) => setMapLink(e.target.value.trim()));
-    $('#mapConfirm').addEventListener('click', () => {
-      const link = ($('#mapLinkInput').value || '').trim() || selectedMapLink;
-      $('#mapsInput').value = link;
-      closeMapModal();
-    });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#mapModal').classList.contains('show')) closeMapModal(); });
+    $('#mapGeo').addEventListener('click', useMyLocation);
+    $('#ciudadSelect').addEventListener('change', (e) => centerMapOnCity(e.target.value));
   }
 
   function collectForm() {
@@ -786,10 +812,10 @@
   /* ---------- armado del pedido ---------- */
   function buildOrder() {
     const data = collectForm();
-    const total = CFG.price * state.qty;
+    const total = orderTotal();
     const interior = state.zone === 'interior';
     const altoParanaDelivery = hasAltoParanaDelivery(data.ciudad);
-    const refParts = ['Cantidad: ' + state.qty];
+    const refParts = ['Cantidad: ' + state.qty + (state.qty > 1 ? ' (combo ' + fmt(total) + ')' : '')];
     if (data.referencia) refParts.push('Referencia: ' + data.referencia);
     refParts.push(altoParanaDelivery ? 'Delivery Alto Paraná' : (interior ? 'ENVÍO AL INTERIOR — transportadora' : 'Delivery Asunción/Central'));
     refParts.push('Pago contra entrega');
@@ -800,7 +826,7 @@
     return {
       id: orderNumber(),
       producto: CFG.name,
-      precio: CFG.price,
+      precio: Math.round(total / state.qty), // precio × cantidad = subtotal del combo
       cantidad: state.qty,
       subtotal: total,
       ganancia: 0,
@@ -841,7 +867,7 @@
   /* ---------- modal de revisión (interior) ---------- */
   function openReviewModal() {
     const data = collectForm();
-    const total = CFG.price * state.qty;
+    const total = orderTotal();
     const rows = [
       ['Nombre y apellido', data.nombre],
       ['Teléfono', data.telefono],
@@ -850,7 +876,7 @@
       ['Referencia', data.referencia || 'Sin referencia'],
       ['Producto', CFG.name],
       ['Cantidad', String(state.qty)],
-      ['Precio unitario', fmt(CFG.price)],
+      ['Precio unitario', fmt(Math.round(total / state.qty))],
       ['Total del producto', fmt(total)],
       ['Forma de entrega', hasAltoParanaDelivery(data.ciudad) ? 'Delivery Alto Paraná' : 'Envío por transportadora'],
       ...(hasAltoParanaDelivery(data.ciudad) ? [['Entrega estimada', 'En el día']] : []),
@@ -998,8 +1024,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
       // reset del formulario
       $('#orderForm').reset();
-      const mi = $('#mapsInput'); if (mi) mi.value = '';
-      selectedMapLink = '';
+      resetMap();
       $$('.field').forEach((f) => f.classList.remove('ok', 'err'));
       $('#ciudadOtraWrap').hidden = true;
       state.qty = 1; updateSummary();
@@ -1070,7 +1095,7 @@
     const payload = Object.assign({
       event: event,
       product: CFG.name,
-      value: CFG.price * state.qty,
+      value: orderTotal(),
       currency: CFG.currency
     }, params);
     if (window.dataLayer) window.dataLayer.push(payload);
