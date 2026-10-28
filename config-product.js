@@ -20,7 +20,7 @@ const PRODUCT_CONFIG = {
   // Desde 4 unidades: precio por unidad (4 = 396.000, 5 = 495.000…)
   bulkUnitPrice: 99000,
   maxQty: 10,
-  metaPixelId: "2412226475899711",
+  metaPixelId: "2141006803281667",
   whatsapp: "595972738779",            // Contacto WhatsApp VG Shop
 
   // Imágenes — reemplazá estos archivos por tus fotos reales (mismo nombre) en la carpeta images/
