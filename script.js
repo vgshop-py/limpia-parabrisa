@@ -619,16 +619,16 @@
     const altoParana = window.ALTO_PARANA_DELIVERY_CITIES || [];
     const groups = [
       {
+        label: 'Asunción y Central · Entrega de 48 a 72 horas',
+        cities: ZONES.local.cities
+      },
+      {
         label: 'Alto Paraná · Delivery en el día',
         cities: altoParana
       },
       {
         label: ZONES.interior.label || 'Interior del país',
         cities: ZONES.interior.cities.filter((city) => altoParana.indexOf(city) === -1)
-      },
-      {
-        label: 'Asunción y Central · Entrega de 48 a 72 horas',
-        cities: ZONES.local.cities
       }
     ];
 
