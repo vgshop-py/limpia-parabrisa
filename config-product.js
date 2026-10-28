@@ -12,7 +12,7 @@ const PRODUCT_CONFIG = {
   logo: "images/logo.png",
 
   // Precios (en guaraníes, sin puntos)
-  price: 135000,
+  price: 149000,
   oldPrice: 199000,
   currency: "PYG",
   metaPixelId: "2412226475899711",
@@ -41,12 +41,13 @@ const PRODUCT_CONFIG = {
   // También editable en vivo con ?config=1 o Ctrl+Shift+C
   features: {
     announcementBar: true,   // Barra superior con mensajes rotativos
-    stockCounter: true,      // "Quedan X unidades"
-    stockDecay: true,        // El stock baja solo con el tiempo (visual)
-    liveViewers: true,       // "X personas viendo ahora"
-    recentPurchases: true,   // Notificaciones de compras recientes
-    offerProgress: true,     // Barra "Oferta del día — 82% reclamado"
-    countdown: true,         // Contador "la oferta termina en…"
+    // Apagados: son números simulados y Meta/los clientes lo detectan
+    stockCounter: false,     // "Quedan X unidades"
+    stockDecay: false,       // El stock baja solo con el tiempo (visual)
+    liveViewers: false,      // "X personas viendo ahora"
+    recentPurchases: false,  // Notificaciones de compras recientes
+    offerProgress: false,    // Barra "Oferta del día — 82% reclamado"
+    countdown: false,        // Contador "la oferta termina en…"
     stickyMobileBar: true,   // Barra fija de compra en mobile
     floatingBenefits: true,  // Tarjetas de beneficios al hacer scroll
     backToTop: true          // Botón "volver arriba"
@@ -68,14 +69,14 @@ const PY_CITIES = [
   "Lambaré", "Fernando de la Mora", "Limpio", "Ñemby", "Encarnación",
   "Mariano Roque Alonso", "Pedro Juan Caballero", "Villa Elisa", "Itauguá",
   "Caaguazú", "Coronel Oviedo", "Presidente Franco", "Villarrica",
-  "Hernandarias", "San Antonio", "Concepción", "Pilar", "Caacupé",
+  "Hernandarias", "Minga Guazú", "San Antonio", "Concepción", "Pilar", "Caacupé",
   "Areguá", "Paraguarí", "Villa Hayes", "Itá", "Guarambaré"
 ];
 
 /* ============================================================
    ZONAS DE ENTREGA
    local    → Asunción y Central: pago CONTRA ENTREGA + delivery
-   interior → resto del país: transportadora + PAGO ANTICIPADO
+   interior → resto del país: transportadora + PAGO AL RECIBIR
    Para mover una ciudad de zona, simplemente cambiala de lista.
    ============================================================ */
 const CITY_ZONES = {
@@ -89,9 +90,9 @@ const CITY_ZONES = {
     ]
   },
   interior: {
-    label: "Interior del país · Envío por transportadora",
+    label: "Interior del país · Pago al recibir",
     cities: [
-      "Ciudad del Este", "Presidente Franco", "Hernandarias", "Encarnación",
+      "Ciudad del Este", "Presidente Franco", "Hernandarias", "Minga Guazú", "Encarnación",
       "Coronel Oviedo", "Caaguazú", "Villarrica", "Pedro Juan Caballero",
       "Concepción", "Pilar", "Caacupé", "Paraguarí", "Villa Hayes",
       "Otra ciudad del interior"
@@ -102,8 +103,14 @@ const CITY_ZONES = {
 // Opciones que piden escribir la ciudad a mano
 const CITY_OTHER_OPTIONS = ["Otra ciudad de Central", "Otra ciudad del interior"];
 
+// Ciudades de Alto Paraná con delivery en el día
+const ALTO_PARANA_DELIVERY_CITIES = [
+  "Ciudad del Este", "Hernandarias", "Presidente Franco", "Minga Guazú"
+];
+
 // Exponer en window (const no se adjunta a window por sí solo)
 window.PRODUCT_CONFIG = PRODUCT_CONFIG;
 window.PY_CITIES = PY_CITIES;
 window.CITY_ZONES = CITY_ZONES;
 window.CITY_OTHER_OPTIONS = CITY_OTHER_OPTIONS;
+window.ALTO_PARANA_DELIVERY_CITIES = ALTO_PARANA_DELIVERY_CITIES;
